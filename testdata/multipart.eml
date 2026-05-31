@@ -1,0 +1,16 @@
+From: sender@example.com
+To: charlie@example.com
+Subject: Project Update
+Date: Fri, 23 May 2026 12:00:00 +0000
+Message-ID: <multipart-1@example.com>
+Content-Type: multipart/alternative; boundary="b"
+
+--b
+Content-Type: text/plain; charset=utf-8
+
+plain part
+--b
+Content-Type: text/html; charset=utf-8
+
+<h2>Update</h2>
+--b--

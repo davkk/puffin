@@ -1,0 +1,75 @@
+sequenceDiagram
+    autonumber
+
+    actor User
+    participant App
+    participant DB
+    participant IMAP
+
+    Note over User,IMAP: Startup
+
+    User->>App: Start
+    App->>IMAP: Login
+    IMAP-->>App: OK
+
+    App->>DB: Load mailbox state
+    DB-->>App: uidvalidity, uidnext, modseq
+
+    App->>IMAP: SELECT INBOX (CONDSTORE)
+    IMAP-->>App: UIDVALIDITY, UIDNEXT, HIGHESTMODSEQ
+
+    alt UIDVALIDITY changed
+        App->>DB: Delete mailbox cache
+        App->>DB: Reset state
+    end
+
+    Note over User,IMAP: Pass 1 - New Messages
+
+    alt server UIDNEXT > local UIDNEXT
+        App->>IMAP: UID FETCH localUIDNext:* (ENVELOPE FLAGS BODY[])
+        IMAP-->>App: New messages
+
+        loop each message
+            App->>DB: INSERT message
+        end
+    end
+
+    Note over User,IMAP: Pass 2 - Flag / Metadata Updates
+
+    alt server MODSEQ > local MODSEQ
+        App->>IMAP: UID FETCH 1:* (FLAGS) (CHANGEDSINCE localModSeq)
+        IMAP-->>App: Changed messages
+
+        loop each changed UID
+            App->>DB: UPDATE flags/modseq
+        end
+    end
+
+    Note over User,IMAP: Pass 3 - Deletion Reconciliation
+
+    App->>IMAP: UID SEARCH ALL
+    IMAP-->>App: Current UID set
+
+    App->>DB: SELECT uid FROM message
+    DB-->>App: Local UID set
+
+    App->>DB: DELETE local UIDs not on server
+
+    Note over User,IMAP: Persist Sync State
+
+    App->>DB: Save UIDNEXT
+    App->>DB: Save MODSEQ
+    App->>DB: Save UIDVALIDITY
+
+    App->>IMAP: IDLE
+
+    Note over App,IMAP: Realtime notifications
+
+    IMAP-->>App: EXISTS
+    App->>App: Trigger sync
+
+    IMAP-->>App: EXPUNGE
+    App->>App: Trigger sync
+
+    IMAP-->>App: FETCH flag update
+    App->>App: Trigger sync

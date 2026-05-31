@@ -1,0 +1,8 @@
+From: sender@example.com
+To: alice@example.com
+Subject: Welcome to Puffin
+Date: Fri, 23 May 2026 10:00:00 +0000
+Message-ID: <plain-1@example.com>
+Content-Type: text/plain; charset=utf-8
+
+This is a plain text welcome email.
