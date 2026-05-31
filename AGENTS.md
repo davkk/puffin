@@ -343,23 +343,3 @@ lots of room for extra sqlite triggers
                     Archive/
                 attachments/
 ```
-
----
-
-### Key Stages Explained
-
-1. **Phase 1 (The Handshake):** Crucial setup. Your application logic (`Main`) is separated conceptually from the library's internal, long-lived background listener (`Lib`). You **must** attach the `UnilateralDataHandler` before dialing or enabling extensions; otherwise, you will miss the server's immediate broadcast during the `SELECT` phase.
-2. **Phase 2 (The QRESYNC Select):** This is the magic.
-* **Step 14:** You query SQLite for **EVERY SINGLE UID** you currently possess for this mailbox.
-* **Step 16:** You pack your local `ModSeq`, `Validity`, and *that list of UIDs* into the `SelectOptions`.
-* **Step 17:** The server receives this and immediately compares your Known UIDs list to its current database. It calculates what you have that *it doesn't* have (i.e., things deleted elsewhere while you were offline).
-* **Steps 19-25:** The server *immediately* starts firing `VANISHED` responses into the TCP stream *while your synchronous `Select()` call is still blocked and waiting*. Because you hooked the `UnilateralDataHandler` in Phase 1, the library's background thread catches these broadcasts and passes them to your application for deletion in the DB concurrently.
-* **Step 26:** The server finally says "OK SELECT completed" and returns the updated `HIGHESTMODSEQ` and `UIDNEXT`.
-
-
-3. **Phase 3 (Active Sync):** The historical deletions are handled. Now you handle flag changes and new mail.
-* **Flag Diffs (CONDSTORE):** You compare your `local ModSeq` (5000) against the new `Server HighModSeq` (6000). Since 6000 > 5000, you send a highly efficient `FETCH ... CHANGEDSINCE 5000`. The server returns *only* those messages modified since your last sync. (This catches flag changes `CONDSTORE` missed during the implicit catch-up).
-* **New Mail (UIDNext):** This is the same standard sync you had in your PoC, fetching anything between your database's `uid_next` and the server's reported `uid_next`.
-
-
-4. **Phase 4 (Finalize State):** You update the mailbox state table in SQLite. It is absolutely vital to save the *new* `highest_modseq` (6000) so the next sync knows exactly where to begin.

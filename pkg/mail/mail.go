@@ -112,26 +112,15 @@ func NewMail(msg *imapclient.FetchMessageBuffer, bodySection *imap.FetchItemBody
 	return email, nil
 }
 
-func ConnectImapClient(serverAddr string, user string, pass string) (*imapclient.Client, error) {
+func ConnectImapClient(serverAddr string, user string, pass string, dataHandler *imapclient.UnilateralDataHandler) (*imapclient.Client, error) {
 	assert.Assert(serverAddr != "", "serverAddr is empty")
 	assert.Assert(user != "", "user is empty")
 	assert.Assert(pass != "", "pass is empty")
 
 	opts := &imapclient.Options{
-		WordDecoder: &mime.WordDecoder{CharsetReader: charset.Reader},
-		TLSConfig:   &tls.Config{InsecureSkipVerify: true},
-		UnilateralDataHandler: &imapclient.UnilateralDataHandler{
-			Expunge: func(seqNum uint32) {
-				// TODO: expunge with deleted emails
-				// TODO: i need seqNum -> UID mapping to delete the right ones, rebuild on every imap select?
-			},
-			Fetch: func(msg *imapclient.FetchMessageData) {
-				// TODO: fetch real-time during IDLE for flag/label changes
-			},
-			Mailbox: func(data *imapclient.UnilateralDataMailbox) {
-				// TODO: mailbox status update (num messages, flags, etc.)
-			},
-		},
+		WordDecoder:           &mime.WordDecoder{CharsetReader: charset.Reader},
+		TLSConfig:             &tls.Config{InsecureSkipVerify: true},
+		UnilateralDataHandler: dataHandler,
 	}
 	client, err := imapclient.DialStartTLS(serverAddr, opts)
 	if err != nil {

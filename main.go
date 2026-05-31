@@ -1,14 +1,44 @@
 package main
 
 import (
+	"context"
+	"log"
+	"os"
+	"os/signal"
 	"puffin/pkg/assert"
 	"puffin/pkg/mail"
+	"time"
 
+	"github.com/emersion/go-imap/v2/imapclient"
 	_ "modernc.org/sqlite"
 )
 
 func main() {
-	imapClient, err := mail.ConnectImapClient("localhost:143", "test", "password")
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	wakeUpCh := make(chan struct{}, 1)
+	wakeUp := func() {
+		select {
+		case wakeUpCh <- struct{}{}:
+		default:
+		}
+	}
+	dataHandler := &imapclient.UnilateralDataHandler{
+		Mailbox: func(data *imapclient.UnilateralDataMailbox) {
+			if data.NumMessages != nil {
+				wakeUp()
+			}
+		},
+		Expunge: func(seqNum uint32) {
+			wakeUp()
+		},
+		Fetch: func(msg *imapclient.FetchMessageData) {
+			wakeUp()
+		},
+	}
+
+	imapClient, err := mail.ConnectImapClient("localhost:143", "test", "password", dataHandler)
 	assert.NoError(err, "failed to connect to imap server")
 	defer imapClient.Logout()
 
@@ -16,36 +46,39 @@ func main() {
 	assert.NoError(err, "failed to connect to sqlite db")
 	defer db.Close()
 
-	err = mail.SyncMailbox(db, imapClient, "INBOX")
-	assert.NoError(err, "sync")
+	for {
+		// TODO: add reconnect logic if tcp dies
+		if err := mail.SyncMailbox(db, imapClient, "INBOX"); err != nil {
+			log.Printf("sync error: %v", err)
+		}
 
-	// TODO: wire up IDLE with UnilateralDataHandler.Mailbox
-	// ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	// defer cancel()
-	// for {
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		fmt.Println("\nshutting down")
-	// 		return
-	// 	default:
-	// 	}
-	// 	err := syncMail(db, imapClient, "INBOX")
-	// 	if err != nil {
-	// 		fmt.Fprintf(os.Stderr, "sync error: %v\n", err)
-	// 	}
-	// 	idleCmd, err := imapClient.Idle()
-	// 	if err != nil {
-	// 		fmt.Fprintf(os.Stderr, "idle error: %v\n", err)
-	// 		time.Sleep(5 * time.Second)
-	// 		continue
-	// 	}
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		idleCmd.Close()
-	// 		fmt.Println("\nshutting down")
-	// 		return
-	// 	case <-time.After(30 * time.Second):
-	// 		idleCmd.Close()
-	// 	}
-	// }
+		log.Println("enter idle state")
+		idleCmd, err := imapClient.Idle()
+		if err != nil {
+			log.Printf("IDLE error: %v", err)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Second):
+				continue
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			idleCmd.Close()
+			idleCmd.Wait()
+			return
+		case <-time.After(29 * time.Minute):
+			log.Println("refresh idle")
+			idleCmd.Close()
+		case <-wakeUpCh:
+			log.Println("server event received")
+			idleCmd.Close()
+		}
+
+		if err := idleCmd.Wait(); err != nil {
+			log.Printf("IDLE wait error: %v", err)
+		}
+	}
 }

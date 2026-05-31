@@ -68,7 +68,7 @@ func newFixture(t *testing.T) *fixture {
 	}
 	t.Cleanup(func() { db.Close() })
 
-	client, err := ConnectImapClient("localhost:143", "test", "password")
+	client, err := ConnectImapClient("localhost:143", "test", "password", nil)
 	if err != nil {
 		t.Fatalf("connect imap: %v", err)
 	}
