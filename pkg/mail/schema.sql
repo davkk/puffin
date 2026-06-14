@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS message (
     mailbox_id INTEGER NOT NULL REFERENCES mailbox(id) ON DELETE CASCADE,
     uid INTEGER NOT NULL,
     message_id TEXT,
+    path TEXT,
     flags TEXT DEFAULT '',
     modseq INTEGER DEFAULT 0,
     subject TEXT,
@@ -26,7 +27,7 @@ CREATE TABLE IF NOT EXISTS message (
     UNIQUE(mailbox_id, uid)
 );
 
--- CREATE INDEX IF NOT EXISTS idx_message_date ON message(mailbox_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_message_date ON message(mailbox_id, date DESC);
 
 -- CREATE VIRTUAL TABLE IF NOT EXISTS message_fts USING fts5(
 --     subject,

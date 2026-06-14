@@ -2,6 +2,7 @@ package mail
 
 import (
 	_ "embed"
+	"path/filepath"
 	"puffin/pkg/assert"
 
 	"bytes"
@@ -69,7 +70,7 @@ func ParseFlags(flags []imap.Flag) string {
 	return b.String()
 }
 
-func NewMail(msg *imapclient.FetchMessageBuffer, bodySection *imap.FetchItemBodySection) (*Mail, error) {
+func NewMail(msg *imapclient.FetchMessageBuffer, raw []byte) (*Mail, error) {
 	assert.Assert(msg.Envelope != nil, "envelope is nil")
 	assert.Assert(len(msg.Envelope.From) > 0, "from in envelope is empty")
 
@@ -82,31 +83,29 @@ func NewMail(msg *imapclient.FetchMessageBuffer, bodySection *imap.FetchItemBody
 		Flags:       ParseFlags(msg.Flags),
 	}
 
-	if section := msg.FindBodySection(bodySection); section != nil {
-		entity, err := message.Read(bytes.NewReader(section))
+	entity, err := message.Read(bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+
+	walker := func(path []int, entity *message.Entity, err error) error {
 		if err != nil {
-			return nil, err
+			return err
 		}
+		contentType, _, err := entity.Header.ContentType()
+		if err != nil {
+			return err
+		}
+		if strings.Contains(contentType, "text/plain") || strings.Contains(contentType, "text/html") {
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(entity.Body)
+			email.Body += buf.String()
+		}
+		return nil
+	}
 
-		walker := func(path []int, entity *message.Entity, err error) error {
-			if err != nil {
-				return err
-			}
-			contentType, _, err := entity.Header.ContentType()
-			if err != nil {
-				return err
-			}
-			if strings.Contains(contentType, "text/plain") || strings.Contains(contentType, "text/html") {
-				buf := new(bytes.Buffer)
-				buf.ReadFrom(entity.Body)
-				email.Body += buf.String()
-			}
-			return nil
-		}
-
-		if err = entity.Walk(walker); err != nil {
-			return nil, err
-		}
+	if err = entity.Walk(walker); err != nil {
+		return nil, err
 	}
 
 	return email, nil
@@ -170,13 +169,11 @@ func reconcileMailbox(db *sql.DB, imapClient *imapclient.Client, mailboxID uint6
 		}
 	}()
 
-	_, err = tx.Exec("CREATE TEMP TABLE IF NOT EXISTS _server_uids (uid INTEGER PRIMARY KEY)")
-	if err != nil {
+	if _, err := tx.Exec("CREATE TEMP TABLE IF NOT EXISTS _server_uids (uid INTEGER PRIMARY KEY)"); err != nil {
 		return err
 	}
 
-	_, err = tx.Exec("DELETE FROM _server_uids")
-	if err != nil {
+	if _, err := tx.Exec("DELETE FROM _server_uids"); err != nil {
 		return err
 	}
 
@@ -192,21 +189,32 @@ func reconcileMailbox(db *sql.DB, imapClient *imapclient.Client, mailboxID uint6
 		}
 	}
 
-	_, err = tx.Exec(`
-		DELETE FROM message
+	rows, err := tx.Query(`
+		SELECT path FROM message
 		WHERE mailbox_id = ?
 		AND NOT EXISTS (
-			SELECT 1
-			FROM _server_uids s
-			WHERE s.uid = message.uid
+			SELECT 1 FROM _server_uids s WHERE s.uid = message.uid
 		)
 	`, mailboxID)
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+	if err := deleteFilesFromRows(rows); err != nil {
+		return err
+	}
 
-	_, err = tx.Exec("DROP TABLE IF EXISTS _server_uids")
-	if err != nil {
+	if _, err := tx.Exec(`
+		DELETE FROM message
+		WHERE mailbox_id = ?
+		AND NOT EXISTS (
+			SELECT 1 FROM _server_uids s WHERE s.uid = message.uid
+		)
+	`, mailboxID); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec("DROP TABLE IF EXISTS _server_uids"); err != nil {
 		return err
 	}
 
@@ -259,10 +267,43 @@ func updateMailboxState(db *sql.DB, mailboxID uint64, selectData *imap.SelectDat
 	return nil
 }
 
-func fetchMessages(db *sql.DB, imapClient *imapclient.Client, mailboxID uint64, rangeUIDs imap.UIDSet) error {
+func saveToFile(mailbox *Mailbox, uid imap.UID, raw []byte) (string, error) {
+	mailboxDir := fmt.Sprintf("%s_%d", mailbox.Name, mailbox.ID)
+	path := filepath.Join("userdata", mailboxDir) // TODO: make sure this is unique
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return "", err
+	}
+
+	fileName := fmt.Sprintf("%d.eml", uid)
+	path = filepath.Join(path, fileName)
+	if err := os.WriteFile(path, raw, 0644); err != nil {
+		return "", err
+	}
+
+	return path, nil
+}
+
+func deleteFilesFromRows(rows *sql.Rows) error {
+	for rows.Next() {
+		var path string
+		if err := rows.Scan(&path); err != nil {
+			return err
+		}
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove %s: %v", path, err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	// TODO: remove empty dirs
+	return nil
+}
+
+func fetchMessages(db *sql.DB, imapClient *imapclient.Client, mailbox *Mailbox, rangeUIDs imap.UIDSet) error {
 	assert.Assert(db != nil, "database is nil")
 	assert.Assert(imapClient != nil, "imap client is nil")
-	assert.Assert(mailboxID > 0, "mailbox id is invalid")
+	assert.Assert(mailbox.ID > 0, "mailbox id is invalid")
 	assert.Assert(len(rangeUIDs) > 0, "rangeUIDs is empty")
 
 	bodySection := &imap.FetchItemBodySection{Peek: true}
@@ -279,12 +320,20 @@ func fetchMessages(db *sql.DB, imapClient *imapclient.Client, mailboxID uint64, 
 	}
 
 	for _, msg := range messages {
-		mail, err := NewMail(msg, bodySection)
+		raw := msg.FindBodySection(bodySection)
+		savedPath, err := saveToFile(mailbox, msg.UID, raw)
+		if err != nil {
+			return fmt.Errorf("save mail: %w", err)
+		}
+		mail, err := NewMail(msg, raw)
 		if err != nil {
 			return fmt.Errorf("parse mail: %w", err)
 		}
-		_, err = db.Exec("INSERT INTO message (mailbox_id, flags, uid, subject, from_name, from_address, date, body) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-			mailboxID, mail.Flags, mail.UID, mail.Subject, mail.FromName, mail.FromAddress, mail.Date, mail.Body)
+		_, err = db.Exec(`
+			INSERT INTO message (mailbox_id, path, flags, uid, subject, from_name, from_address, date, body)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`,
+			mailbox.ID, savedPath, mail.Flags, mail.UID, mail.Subject, mail.FromName, mail.FromAddress, mail.Date, mail.Body)
 		if err != nil {
 			return fmt.Errorf("insert message: %w", err)
 		}
@@ -348,7 +397,7 @@ func SyncMailbox(db *sql.DB, imapClient *imapclient.Client, mailboxName string) 
 	if imapMbox.UIDNext > localMbox.UIDNext {
 		var newUIDs imap.UIDSet
 		newUIDs.AddRange(localMbox.UIDNext, imapMbox.UIDNext-1)
-		if err := fetchMessages(db, imapClient, localMbox.ID, newUIDs); err != nil {
+		if err := fetchMessages(db, imapClient, localMbox, newUIDs); err != nil {
 			return fmt.Errorf("fetch messages: %w", err)
 		}
 	}

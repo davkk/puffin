@@ -48,6 +48,7 @@ func (mw *MailboxWatcher) getDataHandler() *imapclient.UnilateralDataHandler {
 
 }
 
+// TODO: add WatchAll, with imapClient.List("", "*", nil)
 func (mw *MailboxWatcher) Watch(ctx context.Context, db *sql.DB) {
 	var err error
 	// TODO: extract connection logic
