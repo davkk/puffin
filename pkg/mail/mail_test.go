@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"puffin/internal/testutil"
+	"puffin/pkg/localdb"
 	"strings"
 	"sync"
 	"testing"
@@ -62,7 +63,7 @@ type fixture struct {
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
 
-	db, err := ConnectSqlite(":memory:")
+	db, err := localdb.ConnectSqlite(":memory:")
 	if err != nil {
 		t.Fatalf("connect db: %v", err)
 	}

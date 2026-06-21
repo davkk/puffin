@@ -18,14 +18,12 @@ import (
 	"github.com/emersion/go-imap/v2/imapclient"
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/charset"
+	"golang.org/x/net/html"
 
 	_ "modernc.org/sqlite"
 )
 
 // TODO: consider sqlc
-
-//go:embed schema.sql
-var sqlSchema string
 
 type Mailbox struct {
 	Name          string
@@ -70,6 +68,30 @@ func ParseFlags(flags []imap.Flag) string {
 	return b.String()
 }
 
+func stripHTML(input string) string {
+	doc, err := html.Parse(strings.NewReader(input))
+	if err != nil {
+		return ""
+	}
+	var sb strings.Builder
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		switch n.Type {
+		case html.TextNode:
+			sb.WriteString(strings.TrimSpace(n.Data) + " ")
+		case html.ElementNode:
+			if n.Data == "script" || n.Data == "style" {
+				return
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(doc)
+	return sb.String()
+}
+
 func NewMail(msg *imapclient.FetchMessageBuffer, raw []byte) (*Mail, error) {
 	assert.Assert(msg.Envelope != nil, "envelope is nil")
 	assert.Assert(len(msg.Envelope.From) > 0, "from in envelope is empty")
@@ -96,10 +118,13 @@ func NewMail(msg *imapclient.FetchMessageBuffer, raw []byte) (*Mail, error) {
 		if err != nil {
 			return err
 		}
-		if strings.Contains(contentType, "text/plain") || strings.Contains(contentType, "text/html") {
+
+		isPlain := strings.Contains(contentType, "text/plain")
+		isHtml := strings.Contains(contentType, "text/html")
+		if isPlain || isHtml {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(entity.Body)
-			email.Body += buf.String()
+			email.Body += stripHTML(buf.String())
 		}
 		return nil
 	}
@@ -133,20 +158,6 @@ func ConnectImapClient(serverAddr string, user string, pass string, dataHandler 
 		return nil, fmt.Errorf("missing required IMAP capabilities")
 	}
 	return client, nil
-}
-
-func ConnectSqlite(filepath string) (*sql.DB, error) {
-	assert.Assert(filepath != "", "empty filepath")
-
-	db, err := sql.Open("sqlite", filepath)
-	if err != nil {
-		return nil, fmt.Errorf("open: %w", err)
-	}
-	if _, err = db.Exec(sqlSchema); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("schema: %w", err)
-	}
-	return db, nil
 }
 
 func reconcileMailbox(db *sql.DB, imapClient *imapclient.Client, mailboxID uint64) error {
