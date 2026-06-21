@@ -1,8 +1,51 @@
-From: dave@example.com
-To: test@example.com
-Subject: Late addition
-Date: Fri, 23 May 2026 14:00:00 +0000
-Message-ID: <late@example.com>
+From: Alice Wong <alice.wong@engineering.co>
+To: team@engineering.co
+Subject: Re: Q2 Engineering Retrospective & OKR Planning
+Date: Tue, 16 Jun 2026 11:45:00 +0000
+Message-ID: <q2-retro-reply-alice-20260616@engineering.co>
+In-Reply-To: <q2-retro-20260616@engineering.co>
+References: <q2-retro-20260616@engineering.co>
 Content-Type: text/plain; charset=utf-8
 
-New message.
+Thanks for pulling this together, Charlie! A few thoughts:
+
+On the infrastructure migration — I'd like to propose that we delay
+the database stateful set migration by one week. The observability
+team has identified a gap in our monitoring coverage for the new
+Kubernetes cluster. We need at least another week to get proper
+metrics and alerting in place before we move the databases.
+
+Specifically, we're missing:
+
+  * Disk IOPS metrics on the new CSI driver
+  * Proper PDB and anti-affinity rules for the DB pods
+  * Load testing results for the new storage class
+
+Better to delay one week than to have an incident during migration.
+
+On the Q3 OKRs — the 90% test coverage target is ambitious. Currently
+we're at about 62% on critical paths. I've done some rough estimation
+and I think we can hit 80% by end of Q3 with the current team size.
+To get to 90% we'd likely need dedicated time from at least one more
+engineer, or we need to reduce scope elsewhere.
+
+I've attached a spreadsheet with the detailed breakdown per service.
+Happy to discuss further in the retro.
+
+For the "what slowed us down" discussion item — I think one big thing
+was context switching. We had 4 different incidents last quarter that
+required 3+ engineers to drop everything for an entire day. The new
+on-call rotation should help, but I wonder if we should also invest
+in better runbooks and automated remediation.
+
+See you all at 2 PM!
+
+Alice
+
+On Tue, 16 Jun 2026 10:15:00 +0000, Charlie Dev wrote:
+> Hi Team,
+> 
+> Thanks everyone for a fantastic Q2. Here's a summary of what we
+> accomplished and what's ahead for Q3.
+>
+> [...]

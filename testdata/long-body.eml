@@ -1,0 +1,315 @@
+From: Technical Lead <techlead@bigproject.dev>
+To: dev-team@bigproject.dev
+Subject: Comprehensive Guide: Migrating from Monolith to Microservices
+Date: Fri, 19 Jun 2026 11:00:00 +0000
+Message-ID: <migration-guide-20260619@bigproject.dev>
+Content-Type: text/plain; charset=utf-8
+
+Hi Team,
+
+I've put together a comprehensive guide on our approach to migrating
+from the monolith to microservices. This document covers the
+architecture decisions, migration strategy, and operational
+considerations.
+
+This is a long read — grab a coffee before diving in. I recommend
+reading sections 1-3 first, then the rest as reference material.
+We'll discuss the overall approach in our architecture meeting
+on Monday.
+
+---
+
+TABLE OF CONTENTS
+
+  1. Architecture Overview
+  2. Service Boundaries
+  3. Migration Strategy
+  4. Data Management
+  5. Communication Patterns
+  6. Observability
+  7. Deployment
+  8. Testing Strategy
+  9. Rollback Plan
+ 10. Timeline & Milestones
+
+---
+
+1. ARCHITECTURE OVERVIEW
+
+The new architecture consists of the following services:
+
+  a) API Gateway (Go, using Ocelot)
+     Entry point for all external traffic. Handles authentication,
+     rate limiting, request routing, and API versioning.
+
+  b) User Service (Go)
+     Manages user accounts, authentication, authorization, and
+     profile data. Uses PostgreSQL with read replicas.
+
+  c) Product Service (Go)
+     Product catalog, inventory management, pricing. Uses
+     PostgreSQL. Caches frequently accessed data in Redis.
+
+  d) Order Service (Go)
+     Order processing, payment integration, fulfillment
+     orchestration. Uses PostgreSQL for orders and MongoDB
+     for the event log.
+
+  e) Notification Service (Go)
+     Email, SMS, and push notification delivery. Uses RabbitMQ
+     for queuing and templates stored in PostgreSQL.
+
+  f) Search Service (Go, Elasticsearch)
+     Full-text search across products and content. Maintains
+     its own Elasticsearch cluster with daily reindexing.
+
+  g) Analytics Service (Python, Apache Spark)
+     Batch processing of user events and business metrics.
+     Produces aggregated data consumed by the reporting dashboards.
+
+2. SERVICE BOUNDARIES
+
+Each service owns its data exclusively. No service may directly
+access another service's database. Communication happens through
+well-defined APIs (gRPC for internal, REST for external).
+
+The bounded contexts are:
+
+  * Identity & Access: User Service
+  * Catalog Management: Product Service
+  * Transaction Processing: Order Service
+  * Customer Communication: Notification Service
+  * Discovery: Search Service
+  * Intelligence: Analytics Service
+
+For domains that don't fit neatly into a single service, we use
+the "Anti-Corruption Layer" pattern (see Evans, DDD) to translate
+between bounded contexts.
+
+3. MIGRATION STRATEGY
+
+We will use the Strangler Fig pattern: gradually replace pieces
+of the monolith with microservices, routing traffic to the new
+services while the monolith continues to handle the rest.
+
+Phase 1 — Infrastructure (Weeks 1-4)
+  * Set up Kubernetes cluster (we're using GKE)
+  * Deploy service mesh (Istio)
+  * Set up CI/CD pipelines with GitHub Actions
+  * Implement centralized logging (Loki + Grafana)
+  * Deploy Redis and RabbitMQ clusters
+
+Phase 2 — Extract User Service (Weeks 5-8)
+  * Extract authentication and user management from monolith
+  * Implement OAuth 2.0 / OpenID Connect
+  * Migrate user data with zero downtime
+  * All new sign-ups go through User Service
+  * Legacy auth still works in monolith (dual-write)
+
+Phase 3 — Extract Product Service (Weeks 9-12)
+  * Extract product catalog and inventory management
+  * Implement full-text search in Elasticsearch
+  * Product admin UI moved to new service
+  * Read traffic gradually shifted (20% → 50% → 100%)
+
+Phase 4 — Extract Order Service (Weeks 13-18)
+  * This is the most complex migration
+  * Order processing, payment, fulfillment
+  * Requires transactional outbox pattern for consistency
+  * Dual-write with verification for at least 2 weeks
+
+Phase 5 — Extract Remaining Services (Weeks 19-24)
+  * Notification Service
+  * Analytics Service (this can be done in parallel)
+  * Decommission monolith
+
+4. DATA MANAGEMENT
+
+This is the hardest part. Here are the key decisions:
+
+Database per Service
+  Each service gets its own database instance. No shared databases.
+
+Data Synchronization
+  During migration, we use Change Data Capture (CDC) via Debezium
+  to keep the monolith and new services in sync.
+
+  We push events to Kafka topics:
+    * user.events
+    * product.events
+    * order.events
+
+  Each service consumes the events relevant to it.
+
+Eventual Consistency
+  We accept eventual consistency for cross-service queries.
+  The API gateway handles saga orchestration where needed.
+
+  For critical operations (like order placement), we use a
+  distributed saga pattern with compensating transactions.
+
+CQRS
+  Read models are maintained separately from write models.
+  The Search Service maintains its own denormalized data
+  for efficient querying.
+
+5. COMMUNICATION PATTERNS
+
+Synchronous (gRPC):
+  * Service-to-service queries
+  * Authentication/authorization checks
+  * Real-time inventory lookups
+
+Asynchronous (RabbitMQ):
+  * Event notifications
+  * Long-running task orchestration
+  * Cross-service data replication
+
+We use the following message patterns:
+
+  * Command: Direct request to a specific service
+  * Event: Broadcast to all interested services
+  * Saga: Multi-step transaction with compensation
+
+Retry and Circuit Breaker:
+  * All gRPC calls use exponential backoff with jitter
+  * Circuit breaker opens after 5 failures in 30 seconds
+  * Half-open state after 15 seconds
+
+6. OBSERVABILITY
+
+Every service must expose:
+
+  * Metrics: Prometheus endpoints (/metrics)
+  * Tracing: OpenTelemetry distributed tracing
+  * Logging: Structured JSON logs to stdout
+
+We have three golden signals:
+
+  Latency: P50 < 50ms, P95 < 200ms, P99 < 500ms
+  Traffic: Requests per second per endpoint
+  Errors: Error rate per status code family
+  Saturation: CPU, memory, connections per service
+
+Grafana dashboards are organized by service, with a top-level
+"Service Overview" dashboard showing key metrics for all services.
+
+Alerts are configured in AlertManager:
+  * Page: P99 latency > 1s for 5 minutes
+  * Page: Error rate > 5% for 2 minutes
+  * Warning: CPU > 80% for 10 minutes
+  * Warning: Disk usage > 85%
+
+7. DEPLOYMENT
+
+All services are containerized and deployed to Kubernetes.
+
+Deployment Strategy:
+  * Blue-green deployment for all services
+  * Canary releases for high-risk changes (5% → 25% → 100%)
+  * Feature flags for gradual rollout
+
+CI/CD Pipeline:
+  * PR merged → Unit tests → Build image → Push to registry
+  * Deploy to staging → Integration tests → Smoke tests
+  * Deploy to production (blue-green)
+
+Kubernetes Configuration:
+  * Horizontal Pod Autoscaler based on CPU/memory
+  * Pod Disruption Budget: min 2 available
+  * Resource requests and limits for all containers
+  * Network policies to restrict inter-service traffic
+
+8. TESTING STRATEGY
+
+Testing Pyramid for each service:
+
+  * Unit Tests: 70% coverage minimum
+    Test business logic in isolation with mocked dependencies.
+
+  * Integration Tests: 20%
+    Test database interactions, message queue producers/consumers.
+
+  * Contract Tests: 5%
+    Use Pact for consumer-driven contract tests between services.
+
+  * End-to-End Tests: 5%
+    Test critical user journeys across all services.
+
+We also run:
+  * Chaos engineering experiments (weekly)
+  * Load tests (monthly, targeting 3x peak traffic)
+  * Security scans (daily, integrated into CI)
+
+9. ROLLBACK PLAN
+
+Every deployment must have a corresponding rollback plan.
+
+Rollback triggers:
+  * Error rate increase > 3%
+  * P99 latency increase > 50%
+  * Any P0 incident opened within 30 minutes of deployment
+
+Rollback procedure:
+  1. Identify the affected service and scope
+  2. If feature flagged: disable the feature flag
+  3. If canary: shift traffic back to previous version
+  4. If blue-green: switch active environment
+  5. Monitor for 30 minutes after rollback
+  6. Open incident ticket with findings
+
+Database rollbacks:
+  * All schema migrations are forward-only
+  * Additive changes only (no destructive migrations)
+  * Rollback means deploying previous application version
+  * Never roll back a database migration
+
+10. TIMELINE & MILESTONES
+
+  Month 1-2: Foundation (Infrastructure + CI/CD)
+  Month 3-4: User Service migration complete
+  Month 5-6: Product Service migration complete
+  Month 7-9: Order Service migration complete
+  Month 10-11: Notification + Analytics migrated
+  Month 12: Monolith decommissioned
+  
+Key milestones:
+  M1 (Week 4): Green cluster with all infra operational
+  M2 (Week 8): User Service handles 100% of auth traffic
+  M3 (Week 12): Product Service handles 100% of catalog
+  M4 (Week 18): Order Service handles 100% of orders
+  M5 (Week 24): All services migrated, monolith shutdown
+
+---
+
+APPENDIX A: RISK REGISTER
+
+  Risk                             Likelihood  Impact  Mitigation
+  ─────────────────────────────────────────────────────────────────
+  Data inconsistency during split  Medium      High    CDC + dual-write
+  Network latency between services High       Medium  Service mesh + caching
+  Team learning curve              High       Medium  Training + pair programming
+  Increased operational cost       Medium     Medium  Right-sizing + spot instances
+  Vendor lock-in (GKE)             Low        High    Kubernetes standard APIs
+
+APPENDIX B: TEAM STRUCTURE
+
+  Platform Team (4 people):
+    * Infrastructure, CI/CD, Observability
+  
+  Service Teams (3-4 people each):
+    * Cross-functional: backend, DB, DevOps skills
+    * Own their service end-to-end
+  
+  Enablement Team (2 people):
+    * Internal tooling, documentation, best practices
+
+---
+
+Please review and add your comments to the document before Monday's
+meeting. I'll be sending around a calendar invite with the agenda.
+
+Let me know if you have any questions.
+
+Best,
+Tech Lead

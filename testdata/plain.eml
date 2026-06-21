@@ -1,8 +1,79 @@
-From: sender@example.com
-To: alice@example.com
-Subject: Welcome to Puffin
-Date: Fri, 23 May 2026 10:00:00 +0000
-Message-ID: <plain-1@example.com>
+From: Janet Klein <janet@open-source-newsletter.com>
+To: Puffin Test User <puffin@example.com>
+Subject: This Month in Open Source: Kernel 6.8, Rust in GNOME, and More
+Date: Mon, 15 Jun 2026 09:30:00 +0000
+Message-ID: <20260615-newsletter@open-source-newsletter.com>
 Content-Type: text/plain; charset=utf-8
 
-This is a plain text welcome email.
+Hello Puffin Users,
+
+Welcome to the June 2026 edition of "This Month in Open Source."
+We've got a packed newsletter for you this time around.
+
+--- LINUX KERNEL 6.8 RELEASED ---
+
+Linus Torvalds announced the release of Linux kernel 6.8 this past
+weekend. The release includes several major improvements:
+
+  * Bcachefs filesystem is now considered stable.
+  * Improved scheduler performance for hybrid CPU architectures.
+  * Better support for the RISC-V vector extension.
+  * New AMDGPU power management features.
+
+The merge window for 6.9 is already open, and we're expecting some
+interesting networking changes.
+
+--- RUST IN GNOME ---
+
+The GNOME project has been making steady progress on its Rust
+bindings. The latest gtk4-rs release now supports:
+
+  * Full GTK4 widget hierarchy bindings
+  * Improved documentation with more examples
+  * Better cross-compilation support
+  * Asynchronous operation helpers
+
+Several core GNOME apps are now experimenting with Rust ports, and
+the feedback has been largely positive. The memory safety guarantees
+that Rust provides are especially valuable in a large, complex
+codebase like GNOME.
+
+--- GO 1.24 ITERATORS ---
+
+The Go team has been working on iterators as a first-class concept
+in the language. The design draft proposes a simple interface-based
+approach that would allow any type to be iterated over using a
+`for range` loop. This would be a significant ergonomic improvement
+for working with custom collections.
+
+--- PUFFIN DEVELOPMENT UPDATE ---
+
+In local client news, Puffin continues to make progress on its
+IMAP sync engine. Version 0.1.0 is expected to feature:
+
+  * Full offline-first email storage in SQLite
+  * Markdown composer with live preview
+  * Vim-style keyboard navigation
+  * Fuzzy search across all your emails
+
+The team is currently working on getting the IMAP IDLE support
+working correctly for push notifications.
+
+--- COMMUNITY HIGHLIGHTS ---
+
+This month we'd like to highlight the work being done on the
+"Tide" email client for Sailfish OS. It's always exciting to see
+new email clients embracing local-first architecture.
+
+If you're working on an email client or a mail-related open source
+project, we'd love to hear from you. Drop us a line and we might
+feature your work in next month's newsletter.
+
+--- HOW TO REACH US ---
+
+You can reply directly to this email, or find us on IRC at
+irc.libera.chat #open-source-newsletter.
+
+Thanks for reading, and happy hacking!
+
+-- Janet

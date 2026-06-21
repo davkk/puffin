@@ -1,16 +1,171 @@
-From: sender@example.com
-To: charlie@example.com
-Subject: Project Update
-Date: Fri, 23 May 2026 12:00:00 +0000
-Message-ID: <multipart-1@example.com>
-Content-Type: multipart/alternative; boundary="b"
+From: Charlie Dev <charlie@engineering.co>
+To: team@engineering.co
+Subject: Q2 Engineering Retrospective & OKR Planning
+Date: Tue, 16 Jun 2026 10:15:00 +0000
+Message-ID: <q2-retro-20260616@engineering.co>
+Content-Type: multipart/alternative; boundary="----=_part_12345"
 
---b
+------=_part_12345
 Content-Type: text/plain; charset=utf-8
 
-plain part
---b
+Hi Team,
+
+Thanks everyone for a fantastic Q2. Here's a summary of what we
+accomplished and what's ahead for Q3.
+
+-- Q2 HIGHLIGHTS --
+
+1. Performance Improvements
+   We reduced P95 API latency by 40% through query optimization
+   and connection pooling. The new indexing strategy cut full-text
+   search times from ~800ms to ~50ms on average.
+
+2. Infrastructure Migration
+   The move from bare-metal to Kubernetes is now 80% complete.
+   All stateless services have been migrated. The database stateful
+   set migration is scheduled for the first week of July.
+
+3. Developer Experience
+   We shipped the new local development environment based on
+   Docker Compose. Setup time for new engineers went from 2 days
+   to under 2 hours. The feedback has been overwhelmingly positive.
+
+4. Observability
+   We now have distributed tracing across all critical paths
+   using OpenTelemetry. Alert response times have improved
+   significantly thanks to better correlation between services.
+
+-- Q3 OKRs --
+
+Objective 1: 99.99% Platform Reliability
+  KR1: Reduce P99 latency to under 200ms for all user-facing APIs
+  KR2: Achieve 99.99% uptime for the core sync engine
+  KR3: Implement automatic failover for the database tier
+
+Objective 2: Product Velocity
+  KR1: Ship the new composer with real-time collaboration
+  KR2: Reduce release cycle from 3 weeks to 1 week
+  KR3: Achieve 90% test coverage on critical paths
+
+Objective 3: Team Growth
+  KR1: Hire 3 backend engineers and 2 SREs
+  KR2: Complete the engineering onboarding documentation
+  KR3: Start the internal tech talk series
+
+-- DISCUSSION ITEMS FOR THE RETRO --
+
+Please come prepared to discuss:
+
+  * What slowed us down most this quarter?
+  * What should we START doing that we aren't doing now?
+  * What single change would have the biggest impact on Q3?
+
+We'll be meeting in the usual conference room (B-42) at 2 PM.
+Lunch will be provided.
+
+Looking forward to a productive session!
+
+Cheers,
+Charlie
+Engineering Lead
+
+------=_part_12345
 Content-Type: text/html; charset=utf-8
 
-<h2>Update</h2>
---b--
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="font-family: -apple-system, sans-serif; line-height: 1.6; color: #222; max-width: 700px; margin: 0 auto; padding: 20px;">
+
+<h1 style="color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 8px;">Q2 Engineering Retrospective</h1>
+
+<p>Hi Team,</p>
+
+<p>Thanks everyone for a fantastic Q2. Here's a summary of what we
+accomplished and what's ahead for Q3.</p>
+
+<h2 style="color: #2c3e50; margin-top: 28px;">Q2 Highlights</h2>
+
+<h3>1. Performance Improvements</h3>
+<p>We reduced P95 API latency by <strong>40%</strong> through query optimization
+and connection pooling. The new indexing strategy cut full-text search times
+from ~800ms to ~50ms on average.</p>
+
+<h3>2. Infrastructure Migration</h3>
+<p>The move from bare-metal to Kubernetes is now <strong>80% complete</strong>.
+All stateless services have been migrated. The database stateful set migration
+is scheduled for the first week of July.</p>
+
+<h3>3. Developer Experience</h3>
+<p>We shipped the new local development environment based on Docker Compose.
+Setup time for new engineers went from <strong>2 days to under 2 hours</strong>.
+The feedback has been overwhelmingly positive.</p>
+
+<h3>4. Observability</h3>
+<p>We now have distributed tracing across all critical paths using OpenTelemetry.
+Alert response times have improved significantly thanks to better correlation
+between services.</p>
+
+<h2 style="color: #2c3e50; margin-top: 28px;">Q3 OKRs</h2>
+
+<table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+  <tr style="background: #3498db; color: white;">
+    <th style="padding: 10px; text-align: left;">Objective</th>
+    <th style="padding: 10px; text-align: left;">Key Results</th>
+  </tr>
+  <tr style="background: #f8f9fa;">
+    <td style="padding: 10px; border: 1px solid #dee2e6; font-weight: bold; vertical-align: top;">99.99% Platform Reliability</td>
+    <td style="padding: 10px; border: 1px solid #dee2e6;">
+      <ul style="margin: 0; padding-left: 20px;">
+        <li>Reduce P99 latency to under 200ms</li>
+        <li>Achieve 99.99% uptime for sync engine</li>
+        <li>Implement automatic DB failover</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding: 10px; border: 1px solid #dee2e6; font-weight: bold; vertical-align: top;">Product Velocity</td>
+    <td style="padding: 10px; border: 1px solid #dee2e6;">
+      <ul style="margin: 0; padding-left: 20px;">
+        <li>Ship real-time collaboration composer</li>
+        <li>Reduce release cycle from 3 to 1 week</li>
+        <li>90% test coverage on critical paths</li>
+      </ul>
+    </td>
+  </tr>
+  <tr style="background: #f8f9fa;">
+    <td style="padding: 10px; border: 1px solid #dee2e6; font-weight: bold; vertical-align: top;">Team Growth</td>
+    <td style="padding: 10px; border: 1px solid #dee2e6;">
+      <ul style="margin: 0; padding-left: 20px;">
+        <li>Hire 3 backend engineers, 2 SREs</li>
+        <li>Complete onboarding documentation</li>
+        <li>Start internal tech talk series</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+<h2 style="color: #2c3e50; margin-top: 28px;">Discussion Items for the Retro</h2>
+<p>Please come prepared to discuss:</p>
+<ul>
+  <li>What slowed us down most this quarter?</li>
+  <li>What should we <strong>START</strong> doing?</li>
+  <li>What single change would have the biggest impact?</li>
+</ul>
+
+<p style="margin-top: 24px;">We'll be meeting in <strong>B-42</strong> at <strong>2 PM</strong>. Lunch will be provided.</p>
+
+<p>Looking forward to a productive session!</p>
+
+<p>
+  Cheers,<br>
+  <strong>Charlie</strong><br>
+  <span style="color: #666;">Engineering Lead</span>
+</p>
+
+</body>
+</html>
+
+------=_part_12345--

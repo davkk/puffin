@@ -1,0 +1,79 @@
+From: Bob Builder <bob@construction.io>
+To: alice@example.com
+Subject: Building plans for the new office
+Date: Wed, 17 Jun 2026 09:30:00 +0000
+Message-ID: <office-plans-20260617@construction.io>
+Content-Type: multipart/mixed; boundary="----=_part_attachment_67890"
+
+------=_part_attachment_67890
+Content-Type: text/plain; charset=utf-8
+
+Hi Alice,
+
+Please find attached the latest building plans for the new
+office space. Here's a summary of the key changes:
+
+FLOOR PLAN CHANGES:
+
+  * The main entrance has been moved to the south side
+    to align with the street access.
+
+  * The open-plan work area has been expanded by 20%.
+    We can now accommodate up to 60 people in the main
+    workspace.
+
+  * Two new conference rooms have been added on the
+    second floor (B2-01 and B2-02), each seating 12.
+
+  * The kitchen area has been redesigned with a double
+    island layout and additional storage.
+
+  * A bike storage room has been added to the basement
+    level, accessible from the rear alley.
+
+ELECTRICAL:
+
+  * All workstations will have USB-C power delivery
+    built into the desks (15W per port, 4 ports per desk).
+
+  * The server room has been upgraded to support 40kW
+    of cooling capacity.
+
+  * Emergency lighting has been updated to meet the
+    latest fire safety codes.
+
+SCHEDULE:
+
+  * Construction begins: July 1st
+  * Expected completion: September 15th
+  * Move-in date: October 1st
+
+Please review and let me know if you have any questions
+or requested changes. I need your sign-off by Friday so
+we can submit the permit application on Monday.
+
+Thanks,
+Bob
+
+------=_part_attachment_67890
+Content-Type: application/pdf; name="office-plans-v3.pdf"
+Content-Disposition: attachment; filename="office-plans-v3.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIg
+Pj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiBdIC9Db3Vu
+dCAxID4+CmVuZG9iagozIDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01l
+ZGlhQm94IFswIDAgNjEyIDc5Ml0gPj4KZW5kb2JqCnhyZWYKMCA0CjAwMDAwMDAwMDAgNjU1
+MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAx
+MTcgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA0IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJl
+ZgoxNjkKJSVFT0YK
+
+------=_part_attachment_67890
+Content-Type: image/png; name="floor-plan-thumbnail.png"
+Content-Disposition: attachment; filename="floor-plan-thumbnail.png"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGA
+ItRjYQAAAABJRU5ErkJggg==
+
+------=_part_attachment_67890--
