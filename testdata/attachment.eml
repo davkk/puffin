@@ -6,54 +6,44 @@ Message-ID: <office-plans-20260617@construction.io>
 Content-Type: multipart/mixed; boundary="----=_part_attachment_67890"
 
 ------=_part_attachment_67890
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/html; charset=utf-8
 
-Hi Alice,
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<p>Hi Alice,</p>
 
-Please find attached the latest building plans for the new
-office space. Here's a summary of the key changes:
+<p>Please find attached the latest building plans for the new office space. Here's a summary of the key changes:</p>
 
-FLOOR PLAN CHANGES:
+<h2>Floor Plan Changes</h2>
+<ul>
+  <li>The main entrance has been moved to the south side to align with the street access.</li>
+  <li>The open-plan work area has been expanded by 20%. We can now accommodate up to 60 people in the main workspace.</li>
+  <li>Two new conference rooms have been added on the second floor (B2-01 and B2-02), each seating 12.</li>
+  <li>The kitchen area has been redesigned with a double island layout and additional storage.</li>
+  <li>A bike storage room has been added to the basement level, accessible from the rear alley.</li>
+</ul>
 
-  * The main entrance has been moved to the south side
-    to align with the street access.
+<h2>Electrical</h2>
+<ul>
+  <li>All workstations will have USB-C power delivery built into the desks (15W per port, 4 ports per desk).</li>
+  <li>The server room has been upgraded to support 40kW of cooling capacity.</li>
+  <li>Emergency lighting has been updated to meet the latest fire safety codes.</li>
+</ul>
 
-  * The open-plan work area has been expanded by 20%.
-    We can now accommodate up to 60 people in the main
-    workspace.
+<h2>Schedule</h2>
+<ul>
+  <li>Construction begins: July 1st</li>
+  <li>Expected completion: September 15th</li>
+  <li>Move-in date: October 1st</li>
+</ul>
 
-  * Two new conference rooms have been added on the
-    second floor (B2-01 and B2-02), each seating 12.
+<p>Please review and let me know if you have any questions or requested changes. I need your sign-off by Friday so we can submit the permit application on Monday.</p>
 
-  * The kitchen area has been redesigned with a double
-    island layout and additional storage.
-
-  * A bike storage room has been added to the basement
-    level, accessible from the rear alley.
-
-ELECTRICAL:
-
-  * All workstations will have USB-C power delivery
-    built into the desks (15W per port, 4 ports per desk).
-
-  * The server room has been upgraded to support 40kW
-    of cooling capacity.
-
-  * Emergency lighting has been updated to meet the
-    latest fire safety codes.
-
-SCHEDULE:
-
-  * Construction begins: July 1st
-  * Expected completion: September 15th
-  * Move-in date: October 1st
-
-Please review and let me know if you have any questions
-or requested changes. I need your sign-off by Friday so
-we can submit the permit application on Monday.
-
-Thanks,
-Bob
+<p>Thanks,<br>Bob</p>
+</body>
+</html>
 
 ------=_part_attachment_67890
 Content-Type: application/pdf; name="office-plans-v3.pdf"

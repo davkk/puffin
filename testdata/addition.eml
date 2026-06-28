@@ -5,47 +5,42 @@ Date: Tue, 16 Jun 2026 11:45:00 +0000
 Message-ID: <q2-retro-reply-alice-20260616@engineering.co>
 In-Reply-To: <q2-retro-20260616@engineering.co>
 References: <q2-retro-20260616@engineering.co>
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/html; charset=utf-8
 
-Thanks for pulling this together, Charlie! A few thoughts:
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 680px; margin: 0 auto; padding: 20px;">
+<p style="margin-bottom: 16px;">Thanks for pulling this together, Charlie! A few thoughts:</p>
 
-On the infrastructure migration — I'd like to propose that we delay
-the database stateful set migration by one week. The observability
-team has identified a gap in our monitoring coverage for the new
-Kubernetes cluster. We need at least another week to get proper
-metrics and alerting in place before we move the databases.
+<p style="margin-bottom: 16px;">On the infrastructure migration — I'd like to propose that we delay the database stateful set migration by one week. The observability team has identified a gap in our monitoring coverage for the new Kubernetes cluster. We need at least another week to get proper metrics and alerting in place before we move the databases.</p>
 
-Specifically, we're missing:
+<p style="margin-bottom: 16px;">Specifically, we're missing:</p>
+<ul style="margin-bottom: 16px;">
+  <li>Disk IOPS metrics on the new CSI driver</li>
+  <li>Proper PDB and anti-affinity rules for the DB pods</li>
+  <li>Load testing results for the new storage class</li>
+</ul>
 
-  * Disk IOPS metrics on the new CSI driver
-  * Proper PDB and anti-affinity rules for the DB pods
-  * Load testing results for the new storage class
+<p style="margin-bottom: 16px;">Better to delay one week than to have an incident during migration.</p>
 
-Better to delay one week than to have an incident during migration.
+<p style="margin-bottom: 16px;">On the Q3 OKRs — the 90% test coverage target is ambitious. Currently we're at about 62% on critical paths. I've done some rough estimation and I think we can hit 80% by end of Q3 with the current team size. To get to 90% we'd likely need dedicated time from at least one more engineer, or we need to reduce scope elsewhere.</p>
 
-On the Q3 OKRs — the 90% test coverage target is ambitious. Currently
-we're at about 62% on critical paths. I've done some rough estimation
-and I think we can hit 80% by end of Q3 with the current team size.
-To get to 90% we'd likely need dedicated time from at least one more
-engineer, or we need to reduce scope elsewhere.
+<p style="margin-bottom: 16px;">I've attached a spreadsheet with the detailed breakdown per service. Happy to discuss further in the retro.</p>
 
-I've attached a spreadsheet with the detailed breakdown per service.
-Happy to discuss further in the retro.
+<p style="margin-bottom: 16px;">For the "what slowed us down" discussion item — I think one big thing was context switching. We had 4 different incidents last quarter that required 3+ engineers to drop everything for an entire day. The new on-call rotation should help, but I wonder if we should also invest in better runbooks and automated remediation.</p>
 
-For the "what slowed us down" discussion item — I think one big thing
-was context switching. We had 4 different incidents last quarter that
-required 3+ engineers to drop everything for an entire day. The new
-on-call rotation should help, but I wonder if we should also invest
-in better runbooks and automated remediation.
+<p style="margin-bottom: 16px;">See you all at 2 PM!</p>
 
-See you all at 2 PM!
+<p style="margin-bottom: 16px;">Alice</p>
 
-Alice
+<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
 
-On Tue, 16 Jun 2026 10:15:00 +0000, Charlie Dev wrote:
-> Hi Team,
-> 
-> Thanks everyone for a fantastic Q2. Here's a summary of what we
-> accomplished and what's ahead for Q3.
->
-> [...]
+<p style="color: #666; font-size: 13px;">On Tue, 16 Jun 2026 10:15:00 +0000, Charlie Dev wrote:</p>
+<blockquote style="border-left: 3px solid #3498db; padding-left: 12px; margin-left: 0; color: #555;">
+<p>Hi Team,</p>
+<p>Thanks everyone for a fantastic Q2. Here's a summary of what we accomplished and what's ahead for Q3.</p>
+<p>[...]</p>
+</blockquote>
+</body>
+</html>

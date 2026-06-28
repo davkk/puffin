@@ -3,53 +3,51 @@ To: Puffin User <puffin@example.com>
 Subject: Fwd: Critical Security Update — Action Required
 Date: Wed, 17 Jun 2026 08:00:00 +0000
 Message-ID: <fwd-security-20260617@resistance.org>
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/html; charset=utf-8
 
-Hi,
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<p>Hi,</p>
 
-I'm forwarding you this security advisory from our IT department.
-Please take note of the actions required.
+<p>I'm forwarding you this security advisory from our IT department. Please take note of the actions required.</p>
 
--------- Forwarded Message --------
-Subject: Critical Security Update — Action Required
-Date: Tue, 16 Jun 2026 16:30:00 +0000
-From: IT Security Desk <it-security@resistance.org>
-To: All Staff <all-staff@resistance.org>
+<hr>
 
-ATTENTION: ALL USERS
+<div>
+<p><strong>-------- Forwarded Message --------</strong><br>
+Subject: Critical Security Update — Action Required<br>
+Date: Tue, 16 Jun 2026 16:30:00 +0000<br>
+From: IT Security Desk &lt;it-security@resistance.org&gt;<br>
+To: All Staff &lt;all-staff@resistance.org&gt;</p>
+</div>
 
-A critical vulnerability has been discovered in the OpenSSL
-library used by our email infrastructure (CVE-2026-1234).
-This affects all versions prior to 3.2.5.
+<div>
+<h2>ATTENTION: ALL USERS</h2>
 
-WHAT YOU NEED TO DO:
+<p>A critical vulnerability has been discovered in the OpenSSL library used by our email infrastructure (<strong>CVE-2026-1234</strong>). This affects all versions prior to 3.2.5.</p>
 
-1. UPDATE YOUR CLIENTS
-   Make sure your email client is running the latest version.
-   For Puffin users: run `puffin update` or download the
-   latest binary from the internal repository.
+<h3>What You Need To Do:</h3>
 
-2. ROTATE YOUR CREDENTIALS
-   Change your email password and any application-specific
-   passwords. Use the password manager to generate strong,
-   unique passwords.
+<ol>
+  <li><strong>Update your clients</strong> — Make sure your email client is running the latest version. For Puffin users: run <code>puffin update</code> or download the latest binary from the internal repository.</li>
+  <li><strong>Rotate your credentials</strong> — Change your email password and any application-specific passwords. Use the password manager to generate strong, unique passwords.</li>
+  <li><strong>Enable two-factor authentication</strong> — If you haven't already, set up 2FA for your email account. Contact IT if you need assistance.</li>
+  <li><strong>Report suspicious activity</strong> — If you notice any unusual emails or account activity, report it immediately to <a href="mailto:it-security@resistance.org">it-security@resistance.org</a>.</li>
+</ol>
 
-3. ENABLE TWO-FACTOR AUTHENTICATION
-   If you haven't already, set up 2FA for your email account.
-   Contact IT if you need assistance.
+<h3>Timeline:</h3>
+<ul>
+  <li>Patches must be applied by <strong>Friday, June 19th</strong>.</li>
+  <li>Systems not patched by the deadline will be temporarily suspended from network access.</li>
+</ul>
 
-4. REPORT SUSPICIOUS ACTIVITY
-   If you notice any unusual emails or account activity,
-   report it immediately to it-security@resistance.org.
+<p>We apologize for the short notice. This vulnerability is being actively exploited in the wild.</p>
+</div>
 
-TIMELINE:
-  * Patches must be applied by Friday, June 19th.
-  * Systems not patched by the deadline will be temporarily
-    suspended from network access.
+<p>Thank you for your cooperation.</p>
 
-We apologize for the short notice. This vulnerability is being
-actively exploited in the wild.
-
-Thank you for your cooperation.
-
-— IT Security Team
+<p>— IT Security Team</p>
+</body>
+</html>

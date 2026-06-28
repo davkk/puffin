@@ -3,43 +3,57 @@ To: =?UTF-8?Q?c=C3=A9cile?= <cecile@french-company.fr>
 Subject: =?UTF-8?B?UmUgw6lwaXRyZSBkZSBsYSByw6l1bmlvbiwgY29tcHRlcyByZW5kdXM=?=
 Date: Thu, 18 Jun 2026 14:00:00 +0200
 Message-ID: <reunion-20260618@french-company.fr>
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/html; charset=utf-8
 
-Bonjour Cécile,
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<p>Bonjour Cécile,</p>
 
-Suite à notre discussion d'hier, voici le récapitulatif des
-points que nous devons aborder lors de la réunion de demain :
+<p>Suite à notre discussion d'hier, voici le récapitulatif des points que nous devons aborder lors de la réunion de demain :</p>
 
-1. BILAN DU MOIS DE MAI
-   * Les ventes ont augmenté de 15% par rapport à avril.
-   * Le nouveau site web a été déployé avec succès.
-   * Deux nouveaux clients majeurs ont été signés.
+<h2>1. Bilan du mois de mai</h2>
+<ul>
+  <li>Les ventes ont augmenté de 15% par rapport à avril.</li>
+  <li>Le nouveau site web a été déployé avec succès.</li>
+  <li>Deux nouveaux clients majeurs ont été signés.</li>
+</ul>
 
-2. PROJETS EN COURS
-   * Migration vers la nouvelle infrastructure cloud.
-   * Mise à jour de la base de données clients.
-   * Développement de l'application mobile.
+<h2>2. Projets en cours</h2>
+<ul>
+  <li>Migration vers la nouvelle infrastructure cloud.</li>
+  <li>Mise à jour de la base de données clients.</li>
+  <li>Développement de l'application mobile.</li>
+</ul>
 
-3. BUDGET Q3
-   * Proposition de budget pour l'équipe engineering.
-   * Demande de financement pour les nouveaux postes.
-   * Investissement dans les outils de développement.
+<h2>3. Budget Q3</h2>
+<ul>
+  <li>Proposition de budget pour l'équipe engineering.</li>
+  <li>Demande de financement pour les nouveaux postes.</li>
+  <li>Investissement dans les outils de développement.</li>
+</ul>
 
-4. RESSOURCES HUMAINES
-   * Entretiens en cours pour le poste de lead dev.
-   * Demande de formation pour l'équipe sur Rust.
-   * Organisation du séminaire d'équipe de septembre.
+<h2>4. Ressources humaines</h2>
+<ul>
+  <li>Entretiens en cours pour le poste de lead dev.</li>
+  <li>Demande de formation pour l'équipe sur Rust.</li>
+  <li>Organisation du séminaire d'équipe de septembre.</li>
+</ul>
 
-Je vous attends dans la salle de réunion A à 10h.
+<p>Je vous attends dans la salle de réunion A à 10h.</p>
 
-Merci de confirmer votre présence.
+<p>Merci de confirmer votre présence.</p>
 
-Cordialement,
-Jérôme
+<p>Cordialement,<br>Jérôme</p>
 
----
+<hr>
 
-Jérôme Dupont
-Chef de Projet Technique
-French Company SAS
+<p>
+Jérôme Dupont<br>
+Chef de Projet Technique<br>
+French Company SAS<br>
 Tél: +33 1 23 45 67 89
+</p>
+</body>
+</html>
