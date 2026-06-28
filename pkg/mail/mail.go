@@ -110,7 +110,7 @@ func NewMail(msg *imapclient.FetchMessageBuffer, raw []byte) (*Mail, error) {
 		return nil, err
 	}
 
-	walker := func(path []int, entity *message.Entity, err error) error {
+	walk := func(path []int, entity *message.Entity, err error) error {
 		if err != nil {
 			return err
 		}
@@ -129,7 +129,7 @@ func NewMail(msg *imapclient.FetchMessageBuffer, raw []byte) (*Mail, error) {
 		return nil
 	}
 
-	if err = entity.Walk(walker); err != nil {
+	if err = entity.Walk(walk); err != nil {
 		return nil, err
 	}
 

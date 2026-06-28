@@ -8,7 +8,6 @@ import (
 	"puffin/pkg/localdb"
 	"puffin/pkg/mail"
 
-	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 	_ "modernc.org/sqlite"
 )
@@ -24,7 +23,7 @@ func NewApp() *App {
 		mailCh: make(chan string, 128),
 	}
 
-	app := gtk.NewApplication("com.puffin.email", gio.ApplicationFlagsNone)
+	app := gtk.NewApplication("com.puffin.email", 0)
 	app.ConnectActivate(func() { a.activate(app) })
 
 	a.app = app

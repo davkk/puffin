@@ -1,18 +1,22 @@
 package ui
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"html"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
 	"puffin/pkg/assert"
 	"puffin/pkg/localdb"
 
-	"github.com/diamondburned/gotk4/pkg/gdk/v4"
+	"github.com/diamondburned/gotk4-webkitgtk/pkg/webkit/v6"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"github.com/emersion/go-message"
 )
 
 func escapeMarkup(s string) string {
@@ -30,15 +34,15 @@ type MainWindow struct {
 	mailCh chan string
 
 	searchEntry     *gtk.SearchEntry
+	findCtrl        *webkit.FindController
 	listBox         *gtk.ListBox
-	contentBuffer   *gtk.TextBuffer
+	contentBuffer   *webkit.WebView
 	sidebarList     *gtk.ListBox
 	contentScrolled *gtk.ScrolledWindow
 
-	outerPaned     *gtk.Paned
-	msgPane        *gtk.Paned
-	hamburger      *gtk.Button
-	sidebarVisible bool
+	outerPaned *gtk.Paned
+	msgPane    *gtk.Paned
+	hamburger  *gtk.Button
 
 	selectedMailbox int64
 	messageIDs      []string
@@ -52,7 +56,7 @@ func NewMainWindow(app *gtk.Application, db *sql.DB, mailCh chan string) *MainWi
 	vbox := gtk.NewBox(gtk.OrientationVertical, 0)
 	win.SetChild(vbox)
 
-	mw := &MainWindow{Window: win, db: db, mailCh: mailCh, sidebarVisible: true}
+	mw := &MainWindow{Window: win, db: db, mailCh: mailCh}
 
 	vbox.Append(mw.buildTopBar())
 	vbox.Append(mw.buildBody())
@@ -61,9 +65,8 @@ func NewMainWindow(app *gtk.Application, db *sql.DB, mailCh chan string) *MainWi
 	assert.NoError(err, "failed to get mailboxes")
 
 	mw.renderMailboxes(mailboxes)
-	mw.setupGlobalShortcuts()
-	mw.startMailListener()
 
+	mw.startMailListener()
 	return mw
 }
 
@@ -77,16 +80,8 @@ func (mw *MainWindow) buildTopBar() gtk.Widgetter {
 	box.SetMarginStart(12)
 	box.SetMarginEnd(12)
 
-	hamburger := gtk.NewButtonFromIconName("sidebar-hide-symbolic")
-	mw.hamburger = hamburger
-	box.Append(hamburger)
-
 	searchEntry := mw.buildSearchEntry()
 	box.Append(searchEntry)
-
-	hamburger.ConnectClicked(func() {
-		mw.toggleSidebar()
-	})
 
 	return box
 }
@@ -97,28 +92,17 @@ func (mw *MainWindow) buildSearchEntry() *gtk.SearchEntry {
 	searchEntry.SetWidthChars(60)
 	mw.searchEntry = searchEntry
 
-	keyCtrl := gtk.NewEventControllerKey()
-	keyCtrl.ConnectKeyPressed(func(keyval uint, keycode uint, state gdk.ModifierType) bool {
-		if keyval == gdk.KEY_Down {
-			if first := mw.listBox.FirstChild(); first != nil {
-				row := first.(*gtk.ListBoxRow)
-				mw.listBox.SelectRow(row)
-				row.GrabFocus()
-			}
-			return true
-		}
-		return false
-	})
-	searchEntry.AddController(keyCtrl)
-
 	searchEntry.ConnectSearchChanged(func() {
 		query := searchEntry.Text()
 		mw.clearList()
 
 		if query == "" {
 			mw.showMailboxMessages()
+			mw.findCtrl.SearchFinish()
 			return
 		}
+
+		mw.findCtrl.Search(query, 17, 0)
 
 		results, err := localdb.Search(mw.db, query)
 		if err != nil {
@@ -139,6 +123,7 @@ func (mw *MainWindow) buildSearchEntry() *gtk.SearchEntry {
 
 	searchEntry.ConnectStopSearch(func() {
 		searchEntry.SetText("")
+		mw.findCtrl.SearchFinish()
 		mw.showMailboxMessages()
 	})
 
@@ -160,14 +145,6 @@ func (mw *MainWindow) buildBody() gtk.Widgetter {
 }
 
 func (mw *MainWindow) toggleSidebar() {
-	mw.sidebarVisible = !mw.sidebarVisible
-	if mw.sidebarVisible {
-		mw.outerPaned.SetPosition(SIDEBAR_WIDTH)
-		mw.hamburger.SetIconName("sidebar-hide-symbolic")
-	} else {
-		mw.outerPaned.SetPosition(0)
-		mw.hamburger.SetIconName("sidebar-show-symbolic")
-	}
 }
 
 func (mw *MainWindow) buildSidebar() gtk.Widgetter {
@@ -222,6 +199,9 @@ func (mw *MainWindow) buildMessageList() gtk.Widgetter {
 	scrolled.SetChild(listBox)
 
 	listBox.ConnectRowSelected(func(row *gtk.ListBoxRow) {
+		if row == nil {
+			return
+		}
 		mw.showMessageContent(row)
 	})
 
@@ -230,29 +210,6 @@ func (mw *MainWindow) buildMessageList() gtk.Widgetter {
 			mw.contentScrolled.SetVisible(false)
 		}
 	})
-
-	keyCtrl := gtk.NewEventControllerKey()
-	keyCtrl.SetPropagationPhase(gtk.PhaseCapture)
-	keyCtrl.ConnectKeyPressed(func(keyval uint, keycode uint, state gdk.ModifierType) bool {
-		sel := listBox.SelectedRow()
-		switch keyval {
-		case gdk.KEY_Up:
-			if sel == nil || sel.Index() == 0 {
-				mw.searchEntry.GrabFocus()
-				listBox.UnselectAll()
-				return true
-			}
-		case gdk.KEY_Escape:
-			if sel != nil {
-				listBox.UnselectAll()
-				return true
-			}
-			mw.searchEntry.GrabFocus()
-			return true
-		}
-		return false
-	})
-	listBox.AddController(keyCtrl)
 
 	return scrolled
 }
@@ -264,54 +221,40 @@ func (mw *MainWindow) buildContentView() gtk.Widgetter {
 	scrolled.SetVisible(false)
 	mw.contentScrolled = scrolled
 
-	textView := gtk.NewTextView()
-	textView.SetEditable(false)
-	textView.SetCursorVisible(false)
-	textView.SetWrapMode(gtk.WrapWord)
-	textView.AddCSSClass("puffin-mono")
-	mw.contentBuffer = textView.Buffer()
+	webview := webkit.NewWebView()
+	mw.contentBuffer = webview
+	mw.findCtrl = webview.FindController()
 
-	css := gtk.NewCSSProvider()
-	css.LoadFromString(".puffin-mono { font-family: monospace; }")
-	gtk.StyleContextAddProviderForDisplay(textView.Display(), css, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+	manager := webview.UserContentManager()
+	css := webkit.NewUserStyleSheet(
+		":root { color-scheme: light dark; } html, body { background: transparent; color: canvastext; }",
+		webkit.UserContentInjectAllFrames,
+		webkit.UserStyleLevelAuthor,
+		nil, nil,
+	)
+	manager.AddStyleSheet(css)
 
-	scrolled.SetChild(textView)
+	webview.ConnectDecidePolicy(func(decision webkit.PolicyDecisioner, decisionType webkit.PolicyDecisionType) bool {
+		if decisionType != webkit.PolicyDecisionTypeNavigationAction {
+			return false
+		}
+		navDecision, ok := decision.(*webkit.NavigationPolicyDecision)
+		if !ok {
+			return false
+		}
+		action := navDecision.NavigationAction()
+		if !action.IsUserGesture() {
+			return false
+		}
+		uri := action.Request().URI()
+		exec.Command("xdg-open", uri).Start()
+		navDecision.Ignore()
+		return true
+	})
+
+	scrolled.SetChild(webview)
 	return scrolled
 }
-
-// ---------- Global shortcuts ----------
-
-func (mw *MainWindow) setupGlobalShortcuts() {
-	ctrl := gtk.NewEventControllerKey()
-	ctrl.SetPropagationPhase(gtk.PhaseCapture)
-	ctrl.ConnectKeyPressed(func(keyval uint, keycode uint, state gdk.ModifierType) bool {
-		switch {
-		case keyval == gdk.KEY_e && state&gdk.ControlMask != 0:
-			mw.toggleSidebar()
-			return true
-		case keyval == gdk.KEY_f && state&gdk.ControlMask != 0:
-			mw.focusSearch()
-			return true
-		case keyval == gdk.KEY_slash:
-			mw.focusSearch()
-			return true
-		case keyval == gdk.KEY_Escape:
-			if sel := mw.listBox.SelectedRow(); sel != nil {
-				mw.listBox.UnselectAll()
-				return true
-			}
-		}
-		return false
-	})
-	mw.AddController(ctrl)
-}
-
-func (mw *MainWindow) focusSearch() {
-	mw.searchEntry.GrabFocus()
-	mw.searchEntry.SelectRegion(0, -1)
-}
-
-// ---------- Data loading ----------
 
 func (mw *MainWindow) renderMailboxes(mailboxes []localdb.MailboxInfo) {
 	mw.mailboxIDs = make([]int64, 0, len(mailboxes))
@@ -357,6 +300,56 @@ func (mw *MainWindow) showMailboxMessages() {
 	}
 }
 
+func GetMessageBodyHTML(db *sql.DB, messageId int64) (string, bool, error) {
+	var path string
+	if err := db.QueryRow("SELECT path FROM message WHERE id = ?", messageId).Scan(&path); err != nil {
+		return "", false, err
+	}
+
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return "", false, fmt.Errorf("read %s: %w", path, err)
+	}
+
+	entity, err := message.Read(bytes.NewReader(raw))
+	if err != nil {
+		return "", false, err
+	}
+
+	var htmlBody, textBody string
+
+	walk := func(path []int, entity *message.Entity, err error) error {
+		if err != nil {
+			return err
+		}
+		contentType, _, err := entity.Header.ContentType()
+		if err != nil {
+			return err
+		}
+
+		switch {
+		case strings.Contains(contentType, "text/html"):
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(entity.Body)
+			htmlBody += buf.String() + "\n"
+		case strings.Contains(contentType, "text/plain"):
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(entity.Body)
+			textBody += buf.String() + "\n"
+		}
+		return nil
+	}
+
+	if walkErr := entity.Walk(walk); walkErr != nil && htmlBody == "" && textBody == "" {
+		return "", false, walkErr
+	}
+
+	if htmlBody != "" {
+		return htmlBody, true, nil
+	}
+	return textBody, false, nil
+}
+
 func (mw *MainWindow) showMessageContent(row *gtk.ListBoxRow) {
 	index := row.Index()
 	if index < 0 || index >= len(mw.messageIDs) {
@@ -368,12 +361,17 @@ func (mw *MainWindow) showMessageContent(row *gtk.ListBoxRow) {
 		return
 	}
 
-	body, err := localdb.GetMessageBody(mw.db, id)
+	body, isHTML, err := GetMessageBodyHTML(mw.db, id)
 	if err != nil {
-		mw.contentBuffer.SetText("Error loading content: " + err.Error())
-	} else {
-		mw.contentBuffer.SetText(body)
+		mw.contentBuffer.LoadPlainText("Error loading content: " + err.Error())
+		return
 	}
+
+	if !isHTML {
+		body = "<pre>" + html.EscapeString(body) + "</pre>"
+	}
+
+	mw.contentBuffer.LoadHtml(body, "")
 
 	mw.revealContentPane()
 }

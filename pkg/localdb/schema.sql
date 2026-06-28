@@ -1,7 +1,5 @@
-PRAGMA busy_timeout = 5000;
 PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
-PRAGMA synchronous = NORMAL;
 
 CREATE TABLE IF NOT EXISTS mailbox (
     id INTEGER PRIMARY KEY,
@@ -10,6 +8,7 @@ CREATE TABLE IF NOT EXISTS mailbox (
     uid_next INTEGER DEFAULT 1,
     highest_modseq INTEGER DEFAULT 0,
     last_sync DATETIME,
+    -- TODO: add account table and column
     UNIQUE(name)
 );
 
@@ -39,6 +38,7 @@ CREATE TABLE IF NOT EXISTS message (
 CREATE INDEX IF NOT EXISTS idx_message_date ON message(mailbox_id, date DESC);
 
 CREATE VIRTUAL TABLE IF NOT EXISTS message_fts USING fts5(
+    -- TODO: add account column as well
     subject,
     body,
     content='message',

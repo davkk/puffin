@@ -14,6 +14,7 @@ require (
 require (
 	gioui.org/shader v1.0.8 // indirect
 	github.com/KarpelesLab/weak v0.1.1 // indirect
+	github.com/diamondburned/gotk4-webkitgtk/pkg v0.0.0-20240108031600-dee1973cf440 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
