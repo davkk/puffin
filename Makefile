@@ -1,16 +1,20 @@
-.PHONY: mail run seed dev run-dovecot test clean
+.PHONY: mail run seed dev dev-ui run-dovecot test test-unit test-integration clean
 
 DOVECOT_IMAGE ?= dovecot/dovecot:latest-dev
 DOVECOT_PORT  ?= 31143
 
 run:
-	go run main.go
+	go run .
 
 seed:
 	./seed.sh
 
 dev: clean run-dovecot seed
-	@find . -name '*.go' | entr -r go run main.go
+	@find . -name '*.go' | entr -r go run .
+
+dev-ui:
+	@echo "Watching .go files for changes... (Ctrl+C to stop)"
+	@find . -name '*.go' | entr -r go run .
 
 run-dovecot:
 	@if ! docker ps --format '{{.Names}}' | grep -q '^dovecot-test$$'; then \

@@ -49,7 +49,7 @@ func (mw *MailboxWatcher) getDataHandler() *imapclient.UnilateralDataHandler {
 }
 
 // TODO: add WatchAll, with imapClient.List("", "*", nil)
-func (mw *MailboxWatcher) Watch(ctx context.Context, db *sql.DB) {
+func (mw *MailboxWatcher) Watch(ctx context.Context, db *sql.DB, notify chan<- string) {
 	var err error
 	// TODO: extract connection logic
 	mw.imapClient, err = ConnectImapClient("localhost:143", "test", "password", mw.getDataHandler())
@@ -60,6 +60,11 @@ func (mw *MailboxWatcher) Watch(ctx context.Context, db *sql.DB) {
 		// TODO: add reconnect logic if tcp dies
 		if err := SyncMailbox(db, mw.imapClient, mw.mailboxName); err != nil {
 			log.Printf("sync error: %v", err)
+		} else if notify != nil {
+			select {
+			case notify <- mw.mailboxName:
+			default:
+			}
 		}
 
 		log.Println("enter idle state")

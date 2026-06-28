@@ -131,6 +131,99 @@ func (f *fixture) dbFlags(uid int) string {
 	return flags.String
 }
 
+func TestStripHTML(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "simple paragraph",
+			input: "<p>hello world</p>",
+			want:  "hello world ",
+		},
+		{
+			name:  "nested elements",
+			input: "<div><h1>title</h1><p>body text</p></div>",
+			want:  "title body text ",
+		},
+		{
+			name:  "script tags stripped",
+			input: `<script>alert("xss")</script><p>safe</p>`,
+			want:  "safe ",
+		},
+		{
+			name:  "style tags stripped",
+			input: `<style>body{color:red}</style><p>content</p>`,
+			want:  "content ",
+		},
+		{
+			name:  "attributes preserved in text",
+			input: `<a href="https://example.com">click here</a>`,
+			want:  "click here ",
+		},
+		{
+			name:  "invalid html",
+			input: "<p>unclosed",
+			want:  "unclosed ",
+		},
+		{
+			name:  "empty string",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "unicode content",
+			input: "<p>café naïve 日本語 😊</p>",
+			want:  "café naïve 日本語 😊 ",
+		},
+		{
+			name:  "self-closing tags produce no text",
+			input: "<br><hr><img src='x.png'>",
+			want:  "",
+		},
+		{
+			name:  "multiple paragraphs",
+			input: "<p>first</p><p>second</p><p>third</p>",
+			want:  "first second third ",
+		},
+		{
+			name:  "whitespace trimming",
+			input: "<div>\n  <p>  hello  </p>\n</div>",
+			want:  " hello  ",
+		},
+		{
+			name:  "bold and italic inline",
+			input: "<p>this is <b>bold</b> and <i>italic</i></p>",
+			want:  "this is bold and italic ",
+		},
+		{
+			name:  "lists",
+			input: "<ul><li>one</li><li>two</li><li>three</li></ul>",
+			want:  "one two three ",
+		},
+		{
+			name:  "line breaks",
+			input: "line1<br>line2<br>line3",
+			want:  "line1 line2 line3 ",
+		},
+		{
+			name:  "html with head and body",
+			input: "<html><head><title>ignored</title></head><body><p>visible</p></body></html>",
+			want:  "ignored visible ",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripHTML(tt.input)
+			if got != tt.want {
+				t.Errorf("stripHTML(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSync(t *testing.T) {
 	f := newFixture(t)
 

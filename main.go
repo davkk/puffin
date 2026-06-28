@@ -4,21 +4,15 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"puffin/pkg/assert"
-	"puffin/pkg/localdb"
-	"puffin/pkg/mail"
 
-	_ "modernc.org/sqlite"
+	"puffin/internal/ui"
 )
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	db, err := localdb.ConnectSqlite("puffin.db")
-	assert.NoError(err, "failed to connect to sqlite db")
-	defer db.Close()
-
-	go mail.NewMailboxWatcher("INBOX").Watch(ctx, db)
-	<-ctx.Done()
+	app := ui.NewApp()
+	status := app.Run(ctx)
+	os.Exit(status)
 }

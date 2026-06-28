@@ -1,5 +1,7 @@
+PRAGMA busy_timeout = 5000;
 PRAGMA foreign_keys = ON;
 PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
 
 CREATE TABLE IF NOT EXISTS mailbox (
     id INTEGER PRIMARY KEY,
