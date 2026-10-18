@@ -56,9 +56,12 @@ func (mw *MailboxWatcher) Watch(ctx context.Context, db *sql.DB, notify chan<- s
 	assert.NoError(err, "failed to connect to imap server")
 	defer mw.imapClient.Logout()
 
+	mbox, err := NewMailbox(db, mw.mailboxName)
+	assert.NoError(err, "failed to open local mailbox")
+
 	for {
 		// TODO: add reconnect logic if tcp dies
-		if err := SyncMailbox(db, mw.imapClient, mw.mailboxName); err != nil {
+		if err := mbox.Sync(db, mw.imapClient); err != nil {
 			log.Printf("sync error: %v", err)
 		} else if notify != nil {
 			select {

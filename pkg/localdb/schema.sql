@@ -1,64 +1,26 @@
-PRAGMA foreign_keys = ON;
-PRAGMA journal_mode = WAL;
+pragma foreign_keys = on;
 
-CREATE TABLE IF NOT EXISTS mailbox (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    uid_validity INTEGER DEFAULT 0,
-    uid_next INTEGER DEFAULT 1,
-    highest_modseq INTEGER DEFAULT 0,
-    last_sync DATETIME,
-    -- TODO: add account table and column
-    UNIQUE(name)
+create table if not exists mailbox (
+    id integer primary key,
+    name text not null,
+    uid_validity integer default 0,
+    uid_next integer default 1,
+    highest_modseq integer default 0,
+    last_sync datetime,
+    unique (name)
 );
 
-CREATE TABLE IF NOT EXISTS message (
-    id INTEGER PRIMARY KEY,
-    mailbox_id INTEGER NOT NULL REFERENCES mailbox(id) ON DELETE CASCADE,
-    uid INTEGER NOT NULL,
-    message_id TEXT,
-    path TEXT,
-    flags TEXT DEFAULT '',
-    modseq INTEGER DEFAULT 0,
-    subject TEXT,
-    from_name TEXT,
-    from_address TEXT,
-    date DATETIME,
-    body TEXT,
-    UNIQUE(mailbox_id, uid)
+create table if not exists message (
+    id integer primary key,
+    mailbox_id integer not null,
+    uid integer not null,
+    path text,
+    flags text default '',
+    modseq integer default 0,
+    subject text,
+    from_addr text,
+    date datetime,
+    body text,
+    constraint fk_mailbox_id foreign key (mailbox_id) references mailbox (id) on delete cascade,
+    unique (mailbox_id, uid)
 );
-
--- CREATE TABLE IF NOT EXISTS attachments (
---     id INTEGER PRIMARY KEY,
---     message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
---     filename TEXT,
---     content_type TEXT
--- );
-
-CREATE INDEX IF NOT EXISTS idx_message_date ON message(mailbox_id, date DESC);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS message_fts USING fts5(
-    -- TODO: add account column as well
-    subject,
-    body,
-    content='message',
-    content_rowid='id',
-    tokenize='trigram'
-);
-
-CREATE TRIGGER IF NOT EXISTS message_ai AFTER INSERT ON message BEGIN
-    INSERT INTO message_fts(rowid, subject, body)
-    VALUES (new.id, new.subject, new.body);
-END;
-
-CREATE TRIGGER IF NOT EXISTS message_ad AFTER DELETE ON message BEGIN
-    INSERT INTO message_fts(message_fts, rowid, subject, body)
-    VALUES ('delete', old.id, old.subject, old.body);
-END;
-
-CREATE TRIGGER IF NOT EXISTS message_au AFTER UPDATE ON message BEGIN
-    INSERT INTO message_fts(message_fts, rowid, subject, body)
-    VALUES ('delete', old.id, old.subject, old.body);
-    INSERT INTO message_fts(rowid, subject, body)
-    VALUES (new.id, new.subject, new.body);
-END;

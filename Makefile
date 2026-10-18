@@ -1,7 +1,10 @@
-.PHONY: mail run seed dev run-dovecot test test-unit test-integration clean
+.PHONY: mail run seed dev run-dovecot test clean
 
 DOVECOT_IMAGE ?= dovecot/dovecot:latest-dev
 DOVECOT_PORT  ?= 31143
+
+build:
+	go build .
 
 run:
 	go run .

@@ -12,3 +12,5 @@ go.work
 *.db*
 
 userdata/
+
+*.qf

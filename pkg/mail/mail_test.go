@@ -63,11 +63,11 @@ type fixture struct {
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
 
-	db, err := localdb.ConnectSqlite(":memory:")
+	db, err := localdb.NewLocalDB(":memory:")
 	if err != nil {
 		t.Fatalf("connect db: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { db.DB.Close() })
 
 	client, err := ConnectImapClient("localhost:143", "test", "password", nil)
 	if err != nil {
@@ -77,7 +77,7 @@ func newFixture(t *testing.T) *fixture {
 
 	name := fmt.Sprintf("test-%d", time.Now().UnixNano())
 
-	f := &fixture{t: t, db: db, client: client, mailbox: name}
+	f := &fixture{t: t, db: db.DB, client: client, mailbox: name}
 	f.doveadm("", "mailbox", "create", "-u", "test", name)
 	t.Cleanup(func() { f.doveadm("", "mailbox", "delete", "-u", "test", name) })
 	return f
@@ -102,8 +102,20 @@ func (f *fixture) seed() {
 	f.doveadm(string(multipartEML()), "save", "-u", "test", "-m", f.mailbox)
 }
 
+func (f *fixture) sync() {
+	f.t.Helper()
+
+	mbox, err := NewMailbox(f.db, f.mailbox)
+	if err != nil {
+		f.t.Fatalf("open mailbox: %v", err)
+	}
+	if err := mbox.Sync(f.db, f.client); err != nil {
+		f.t.Fatalf("sync mailbox: %v", err)
+	}
+}
+
 func (f *fixture) dbUIDs() []int {
-	rows, err := f.db.Query("SELECT uid FROM message ORDER BY uid")
+	rows, err := f.db.Query("select uid from message order by uid")
 	if err != nil {
 		f.t.Fatalf("query uids: %v", err)
 	}
@@ -121,14 +133,20 @@ func (f *fixture) dbUIDs() []int {
 
 func (f *fixture) dbCount() int {
 	var n int
-	f.db.QueryRow("SELECT COUNT(*) FROM message").Scan(&n)
+	f.db.QueryRow("select count(*) from message").Scan(&n)
 	return n
 }
 
 func (f *fixture) dbFlags(uid int) string {
 	var flags sql.NullString
-	f.db.QueryRow("SELECT flags FROM message WHERE uid = ?", uid).Scan(&flags)
+	f.db.QueryRow("select flags from message where uid = ?", uid).Scan(&flags)
 	return flags.String
+}
+
+func (f *fixture) dbModSeq(uid int) uint64 {
+	var modseq uint64
+	f.db.QueryRow("select modseq from message where uid = ?", uid).Scan(&modseq)
+	return modseq
 }
 
 func TestStripHTML(t *testing.T) {
@@ -230,9 +248,7 @@ func TestSync(t *testing.T) {
 	t.Run("initial sync seeds database", func(t *testing.T) {
 		f.seed()
 
-		if err := SyncMailbox(f.db, f.client, f.mailbox); err != nil {
-			t.Fatalf("syncMail: %v", err)
-		}
+		f.sync()
 
 		if n := f.dbCount(); n != 3 {
 			t.Errorf("expected 3 messages, got %d", n)
@@ -242,9 +258,7 @@ func TestSync(t *testing.T) {
 	t.Run("addition syncs new messages", func(t *testing.T) {
 		f.doveadm(string(additionEML()), "save", "-u", "test", "-m", f.mailbox)
 
-		if err := SyncMailbox(f.db, f.client, f.mailbox); err != nil {
-			t.Fatalf("syncMail: %v", err)
-		}
+		f.sync()
 
 		if n := f.dbCount(); n != 4 {
 			t.Errorf("expected 4 messages, got %d", n)
@@ -260,9 +274,7 @@ func TestSync(t *testing.T) {
 
 		f.doveadm("", "expunge", "-u", "test", "mailbox", f.mailbox, "uid", fmt.Sprintf("%d", target))
 
-		if err := SyncMailbox(f.db, f.client, f.mailbox); err != nil {
-			t.Fatalf("syncMail: %v", err)
-		}
+		f.sync()
 
 		for _, uid := range f.dbUIDs() {
 			if uid == target {
@@ -281,13 +293,31 @@ func TestSync(t *testing.T) {
 		f.doveadm("", "flags", "add", "-u", "test", `\Seen`, "mailbox", f.mailbox, "uid", fmt.Sprintf("%d", target))
 		f.doveadm("", "flags", "add", "-u", "test", `\Flagged`, "mailbox", f.mailbox, "uid", fmt.Sprintf("%d", target))
 
-		if err := SyncMailbox(f.db, f.client, f.mailbox); err != nil {
-			t.Fatalf("syncMail: %v", err)
-		}
+		f.sync()
 
 		flags := f.dbFlags(target)
 		if !strings.Contains(flags, "\\Seen") {
 			t.Errorf("expected \\Seen in flags, got %q", flags)
 		}
 	})
+}
+
+func TestSyncNewMessageStaleModSeq(t *testing.T) {
+	f := newFixture(t)
+	f.seed()
+
+	f.sync()
+
+	f.doveadm(string(additionEML()), "save", "-u", "test", "-m", f.mailbox)
+	f.sync()
+
+	uids := f.dbUIDs()
+	if len(uids) != 4 {
+		t.Fatalf("expected 4 messages, got %d", len(uids))
+	}
+	newUID := uids[len(uids)-1]
+
+	if got := f.dbModSeq(newUID); got == 0 {
+		t.Errorf("new message UID %d has modseq 0; the CHANGEDSINCE pass does not cover newly fetched UIDs", newUID)
+	}
 }
