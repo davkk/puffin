@@ -3,7 +3,9 @@ package mail
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"puffin/internal/testutil"
 	"puffin/pkg/localdb"
 	"strings"
@@ -319,5 +321,85 @@ func TestSyncNewMessageStaleModSeq(t *testing.T) {
 
 	if got := f.dbModSeq(newUID); got == 0 {
 		t.Errorf("new message UID %d has modseq 0; the CHANGEDSINCE pass does not cover newly fetched UIDs", newUID)
+	}
+}
+
+func TestPrune(t *testing.T) {
+	db, err := localdb.NewLocalDB(":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { db.DB.Close() })
+
+	mbox, err := NewMailbox(db.DB, "prune-target")
+	if err != nil {
+		t.Fatalf("new mailbox: %v", err)
+	}
+	other, err := NewMailbox(db.DB, "prune-other")
+	if err != nil {
+		t.Fatalf("new mailbox: %v", err)
+	}
+
+	dir := t.TempDir()
+	writeMessage := func(m *Mailbox, uid int, name string) string {
+		t.Helper()
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte("raw"), 0644); err != nil {
+			t.Fatalf("write %s: %v", path, err)
+		}
+		if _, err := db.DB.Exec(
+			"insert into message (mailbox_id, uid, path) values (?, ?, ?)",
+			m.ID, uid, path,
+		); err != nil {
+			t.Fatalf("insert message: %v", err)
+		}
+		return path
+	}
+
+	target1 := writeMessage(mbox, 1, "target-1.eml")
+	target2 := writeMessage(mbox, 2, "target-2.eml")
+	keep := writeMessage(other, 1, "other-1.eml")
+
+	if err := mbox.prune(db.DB); err != nil {
+		t.Fatalf("prune: %v", err)
+	}
+
+	assertGone := func(path string) {
+		t.Helper()
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("file %s still present (err=%v)", path, err)
+		}
+	}
+	assertGone(target1)
+	assertGone(target2)
+	if _, err := os.Stat(keep); err != nil {
+		t.Errorf("prune removed a file from another mailbox: %v", err)
+	}
+
+	var n int
+	if err := db.DB.QueryRow("select count(*) from message where mailbox_id = ?", mbox.ID).Scan(&n); err != nil {
+		t.Fatalf("count messages: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("pruned mailbox should have 0 messages, got %d", n)
+	}
+	if err := db.DB.QueryRow("select count(*) from message where mailbox_id = ?", other.ID).Scan(&n); err != nil {
+		t.Fatalf("count messages: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("other mailbox should keep its 1 message, got %d", n)
+	}
+
+	// The mailbox row must survive so mbox.ID stays valid for the refetch.
+	if err := db.DB.QueryRow("select count(*) from mailbox where id = ?", mbox.ID).Scan(&n); err != nil {
+		t.Fatalf("count mailboxes: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("prune must keep the mailbox row, got %d", n)
+	}
+
+	// Idempotent: a second call has nothing to remove and must not error.
+	if err := mbox.prune(db.DB); err != nil {
+		t.Fatalf("second prune: %v", err)
 	}
 }

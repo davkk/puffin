@@ -240,6 +240,22 @@ func NewMailbox(db *sql.DB, mboxName string) (*Mailbox, error) {
 	return mbox, nil
 }
 
+func (mbox *Mailbox) prune(db *sql.DB) error {
+	rows, err := db.Query("select path from message where mailbox_id = ?", mbox.ID)
+	if err != nil {
+		return err
+	}
+	if err := deleteFilesFromRows(rows); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+	if _, err := db.Exec("delete from message where mailbox_id = ?", mbox.ID); err != nil {
+		return err
+	}
+	return nil
+}
+
 // TODO: wrap db calls in transaction
 func (mbox *Mailbox) Sync(db *sql.DB, imapClient *imapclient.Client) error {
 	assert.Assert(db != nil, "db is nil")
@@ -254,10 +270,13 @@ func (mbox *Mailbox) Sync(db *sql.DB, imapClient *imapclient.Client) error {
 	}
 
 	if mbox.UIDValidity > 0 && mbox.UIDValidity != imapMbox.UIDValidity {
-		// TODO: prune existing mailbox & messages
 		fmt.Fprintf(os.Stderr, "UID validity mismatch: %d != %d", mbox.UIDValidity, imapMbox.UIDValidity)
+		if err := mbox.prune(db); err != nil {
+			return fmt.Errorf("prune stale mailbox: %w", err)
+		}
 		mbox.UIDValidity = 0
 		mbox.UIDNext = 1
+		mbox.HighestModSeq = 0
 	}
 
 	if mbox.UIDNext < imapMbox.UIDNext {

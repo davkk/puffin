@@ -2,8 +2,8 @@ package assert
 
 import (
 	"fmt"
-	"os"
 	"log"
+	"os"
 )
 
 func runAssert(msg string) {
